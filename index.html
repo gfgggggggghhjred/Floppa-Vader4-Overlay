@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FLOPPA CAPS · Vader 4 Pro Overlay</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}canvas{display:block;width:100vw;height:100vh;object-fit:contain}#debug{display:none;position:fixed;left:12px;bottom:12px;color:#fff;background:#15101edc;padding:12px;border:1px solid #9f46ff;border-radius:8px;font:13px/1.5 system-ui;white-space:pre-wrap;pointer-events:none}body.debug #debug{display:block}</style></head><body><canvas id="overlay" width="1672" height="941"></canvas><div id="debug"></div><script>
+'use strict';
+const c=document.getElementById('overlay'),ctx=c.getContext('2d');const out=document.getElementById('debug');
+const params=new URLSearchParams(location.search),debug=params.has('debug'),test=params.has('test'),chosen=Number(params.get('pad')||0);if(debug||test)document.body.classList.add('debug');
+const art=new Image();art.src='assets/vader4_skin.png';
+const btn={A:[1186,355,48],B:[1263,272,45],X:[1091,272,44],Y:[1176,184,46],C:[1235,469,38],Z:[1236,543,38],UP:[555,453,44],DOWN:[552,592,43],LEFT:[485,524,44],RIGHT:[624,521,45],VIEW:[683,160,36],MENU:[968,161,36],HOME:[825,110,45],LB:[424,78,75],RB:[1245,76,75],LT:[478,30,65],RT:[1172,29,65]};
+// Standard mapping: A B X Y LB RB LT RT View Menu L3 R3 D-pad Home. C/Z may require driver-specific bridge.
+const mapping={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,VIEW:8,MENU:9,UP:12,DOWN:13,LEFT:14,RIGHT:15,HOME:16};
+let simulated={}, frame=0;
+function pressGlow(x,y,r,v,purple='#bf67ff'){if(!v)return;ctx.save();ctx.globalAlpha=Math.min(1,v);const g=ctx.createRadialGradient(x,y,r*.2,x,y,r*1.18);g.addColorStop(0,'rgba(224,162,255,.18)');g.addColorStop(.62,'rgba(180,71,255,.23)');g.addColorStop(1,'rgba(142,26,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*1.2,0,Math.PI*2);ctx.fill();ctx.shadowColor=purple;ctx.shadowBlur=24;ctx.strokeStyle=`rgba(229,171,255,${.3+.7*v})`;ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y,r*.86,0,Math.PI*2);ctx.stroke();ctx.restore()}
+function stick(x,y,axes,clicked){const dx=(axes?.[0]||0)*19,dy=(axes?.[1]||0)*19;ctx.save();ctx.beginPath();ctx.arc(x,y,75,0,Math.PI*2);ctx.clip();ctx.fillStyle='#121119';ctx.fillRect(x-83,y-83,166,166);ctx.drawImage(art,x-72,y-72,144,144,x-72+dx,y-72+dy,144,144);ctx.restore();pressGlow(x+dx,y+dy,82,clicked?1:Math.max(Math.abs(dx),Math.abs(dy))/24*.25)}
+function active(b,key){return b?.buttons?.[mapping[key]]?.value||0}
+const testNames=['A','B','X','Y','LB','RB','LT','RT','VIEW','MENU','UP','DOWN','LEFT','RIGHT','HOME'];
+function tick(){frame++;ctx.clearRect(0,0,c.width,c.height);if(art.complete&&art.naturalWidth)ctx.drawImage(art,0,0,1672,941);
+ const pads=navigator.getGamepads?.()||[],pad=pads[chosen]||null;const demo=test;const s=(key)=>demo?((Math.sin(frame/45+testNames.indexOf(key)*1.9)>0.78)?1:0):active(pad,key);
+ for(const [k,pos] of Object.entries(btn))pressGlow(...pos,s(k));
+ const left=demo?[Math.cos(frame/80)*.65,Math.sin(frame/80)*.65]:[pad?.axes?.[0]||0,pad?.axes?.[1]||0];const right=demo?[Math.cos(frame/70)*.65,Math.sin(frame/70)*.65]:[pad?.axes?.[2]||0,pad?.axes?.[3]||0];
+ if(art.complete&&art.naturalWidth){stick(481,269,left,demo||pad?.buttons?.[10]?.pressed);stick(1071,521,right,demo||pad?.buttons?.[11]?.pressed)}
+ // Extra C/Z buttons aren't part of standard gamepad mapping; only illuminate in test mode.
+ if(demo){pressGlow(...btn.C,(Math.sin(frame/37)>0.8)?1:0);pressGlow(...btn.Z,(Math.cos(frame/37)>0.8)?1:0)}
+ if(debug||test)out.textContent=`FLOPPA CAPS • Vader 4 Pro\nMode: ${demo?'ANIMATION / ALIGNMENT TEST':pad?'GAMEPAD CONNECTED':'WAITING FOR GAMEPAD'}\nController: ${pad?.id||'none detected'}\nIndex: ${chosen} | Axes: ${pad?pad.axes.map(x=>x.toFixed(2)).join(', '):'–'}\nButtons: ${pad?pad.buttons.map((b,i)=>b.pressed?i:null).filter(x=>x!==null).join(', ')||'none':'–'}\nC/Z and rear mappings require a custom input bridge when not exposed individually.`;
+ requestAnimationFrame(tick)}
+art.onload=()=>requestAnimationFrame(tick);art.onerror=()=>{out.textContent='ERROR: assets/vader4_skin.png not found';document.body.classList.add('debug')};
+window.addEventListener('gamepadconnected',()=>{});
+</script></body></html>
